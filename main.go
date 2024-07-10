@@ -36,7 +36,7 @@ func fillStruct(donor map[string][]string, receiver any) error {
 			return errors.New("list of query parameters not supported at this time")
 		}
 		var fieldValue any
-		if len(fieldValues) == 2 {
+		if len(fieldValues) == 1 {
 			fieldValue = fieldValues[0]
 			receiverVal.FieldByName(fieldName).SetString(fieldValue.(string))
 		}
@@ -58,6 +58,7 @@ func CustomHandler[
 	url string,
 	method Method,
 	inFunc func(*QueryModelType, *RequestModelType) *ResponseModelType,
+	serveMux *http.ServeMux,
 ) {
 	wrapperFunc := func(w http.ResponseWriter, rawRequest *http.Request) {
 		inFuncRefl := reflect.TypeOf(inFunc)
@@ -84,5 +85,9 @@ func CustomHandler[
 		}
 		io.WriteString(w, string(responseString))
 	}
-	http.HandleFunc(string(method)+" "+url, wrapperFunc)
+	if serveMux == nil {
+		http.HandleFunc(string(method)+" "+url, wrapperFunc)
+	} else {
+		serveMux.HandleFunc(string(method)+" "+url, wrapperFunc)
+	}
 }
