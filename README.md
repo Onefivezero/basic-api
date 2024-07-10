@@ -5,45 +5,52 @@ A personal Golang learning project
 ## Basic Example
 
 ```Go
-package basic_api
+...
 
-import (
-    "log"
-    "net/http"
-)
-
-// Define API models first and annotate with json struct tags.
-
-type ExampleQueryModel struct {
-    String string `json:"queryString"`
+// Define request data and query parameter models.
+type StudentInfo struct {
+	Name        string  `json:"name"`
+	Age         int     `json:"age"`
+	Score       float32 `json:"score"`
+	LetterScore rune    `json:"letterScore"`
+	Passed      bool    `json:"passed"`
 }
 
-type ExampleRequestBodyModel struct {
-    Number int  `json:"number"`
-    Bool   bool `json:"bool"`
+type StudentIdentifierInfo struct {
+	Id string `json:"id"`
 }
 
-type ExampleResponseModel struct {
-    QueryString   string `json:"queryString"`
-    RequestNumber int    `json:"requestNumber"`
-    RequestBool   bool   `json:"requestBool"`
+type StudentCompleteInfo struct {
+	Id          string  `json:"id"`
+	Name        string  `json:"name"`
+	Age         int     `json:"age"`
+	Score       float32 `json:"score"`
+	LetterScore rune    `json:"letterScore"`
+	Passed      bool    `json:"passed"`
 }
 
-// Define an endpoint function
-// The first parameter's type defines the url parameters, the second defines the request body structure, and finally the return type defines the response model.
-
-func ExampleEndpoint(queryData *ExampleQueryModel, requestData *ExampleRequestBodyModel) *ExampleResponseModel {
-    return &ExampleResponseModel{
-        QueryString:   queryData.String,
-        RequestNumber: requestData.Number,
-        RequestBool:   requestData.Bool,
-    }
+// Define an endpoint function.
+func CombineStudentInfo(
+	queryParameters *StudentIdentifierInfo,
+	requestData *StudentInfo,
+) *StudentCompleteInfo {
+	return &StudentCompleteInfo{
+		Id:          queryParameters.Id,
+		Name:        requestData.Name,
+		Age:         requestData.Age,
+		Score:       requestData.Score,
+		LetterScore: requestData.LetterScore,
+		Passed:      requestData.Passed,
+	}
 }
 
-// Call the CustomHandler function with url path and method, and finally start the server.
 
-func init() {
-    CustomHandler("/example", "POST", ExampleEndpoint)
-    log.Fatal(http.ListenAndServe("localhost:8080", nil))
+// Create a handler object, call the CustomHandler function to add the endpoint to this handler, and finally start listening.
+// mux is optional and can be replaced with nil, in which case the default ServeMux in the http package will be used instead.
+func main() {
+	mux := http.NewServeMux()
+	basic_api.CustomHandler("/combine", "POST", CombineStudentInfo, mux)
+
+	log.Fatal(http.ListenAndServe("localhost:8080", mux))
 }
 ```
