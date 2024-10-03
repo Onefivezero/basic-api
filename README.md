@@ -1,6 +1,6 @@
 # Basic API
 
-A personal Golang learning project
+A Golang REST framework made to simplify writing endpoints.
 
 ## Basic Example
 
