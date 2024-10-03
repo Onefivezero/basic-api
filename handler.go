@@ -9,16 +9,6 @@ import (
 	"reflect"
 )
 
-type Method string
-
-const (
-	GET    Method = "GET"
-	HEAD   Method = "HEAD"
-	POST   Method = "POST"
-	PUT    Method = "PUT"
-	DELETE Method = "DELETE"
-)
-
 func fillStruct(donor map[string][]string, receiver any) error {
 	receiverVal := reflect.ValueOf(receiver).Elem()
 	if receiverVal.Kind() != reflect.Struct {
