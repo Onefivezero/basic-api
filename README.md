@@ -33,7 +33,7 @@ type StudentCompleteInfo struct {
 func CombineStudentInfo(
 	queryParameters *StudentIdentifierInfo,
 	requestData *StudentInfo,
-) *StudentCompleteInfo {
+) (*StudentCompleteInfo, *basic_api.ErrorResponse) {
 	return &StudentCompleteInfo{
 		Id:          queryParameters.Id,
 		Name:        requestData.Name,

@@ -34,10 +34,13 @@ func fillStruct(donor map[string][]string, receiver any) error {
 	return nil
 }
 
-func panicErr(err error) {
-	if err != nil {
-		panic(err)
+func panicErr(w http.ResponseWriter, err error) {
+	response := ErrorResponse{
+		StatusCode:   400,
+		ErrorMessage: &map[string]string{"Error": err.Error()},
 	}
+	responseBytes, _ := json.Marshal(response)
+	io.WriteString(w, string(responseBytes))
 }
 
 func CustomHandler[
@@ -47,7 +50,7 @@ func CustomHandler[
 ](
 	url string,
 	method Method,
-	inFunc func(*QueryModelType, *RequestModelType) *ResponseModelType,
+	inFunc func(*QueryModelType, *RequestModelType) (*ResponseModelType, *ErrorResponse),
 	serveMux *http.ServeMux,
 ) {
 	wrapperFunc := func(w http.ResponseWriter, rawRequest *http.Request) {
@@ -61,18 +64,35 @@ func CustomHandler[
 
 		// fill query parameters
 		err := fillStruct(rawRequest.URL.Query(), queryData)
-		panicErr(err)
-
+		if err != nil {
+			panicErr(w, err)
+			return
+		}
 		// fill request data
 		err = json.NewDecoder(rawRequest.Body).Decode(requestData)
-		panicErr(err)
-
-		// run code and return response
-		response := inFunc(queryData, requestData)
-		responseString, err := json.Marshal(response)
-		if err != io.EOF {
-			panicErr(err)
+		if err != nil {
+			panicErr(w, err)
+			return
 		}
+		// run code and return response
+		response, http_error := inFunc(queryData, requestData)
+
+		// if response, return 200 and response. Else, return custom error.
+		var responseString []byte
+		if response != nil {
+			responseString, err = json.Marshal(response)
+			if err != nil && err != io.EOF {
+				panicErr(w, err)
+				return
+			}
+		} else if http_error != nil {
+			responseString, err = json.Marshal(http_error)
+			if err != nil && err != io.EOF {
+				panicErr(w, err)
+				return
+			}
+		}
+
 		io.WriteString(w, string(responseString))
 	}
 	if serveMux == nil {
