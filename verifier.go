@@ -12,43 +12,55 @@ func perr(err error) {
 	panic("ENDED")
 }
 
-func parseStruct(source map[string]any, targetType reflect.Type) {
+func parseStruct(source map[string]any, targetType reflect.Type) any {
+	finalVal := reflect.New(targetType)
 	for _, fieldInfo := range reflect.VisibleFields(targetType) {
 		fieldName := fieldInfo.Name
 		val, exists := source[fieldName]
 		fmt.Printf("STRUCT: field: %v, val: %v, exists: %v\n", fieldName, val, exists)
-		parse(val, fieldInfo.Type)
+		if exists {
+			parsedVal := parse(val, fieldInfo.Type)
+			fmt.Printf("1: %v", reflect.ValueOf(finalVal).FieldByName(fieldName))
+			fmt.Printf("2: %v", reflect.ValueOf(finalVal).FieldByName(fieldName))
+			fmt.Printf("3: %v", fieldName)
+			reflect.ValueOf(finalVal).FieldByName(fieldName).Set(reflect.ValueOf(parsedVal))
+		}
 	}
+	return finalVal
 }
 
-func parseList(source any, targetInnerType reflect.Type) {
+func parseList(source any, targetType reflect.Type) []any {
+	targetInnerType := targetType.Elem()
 	rx := reflect.ValueOf(source)
+	var resultList []any = make([]any, 0)
 	for i := range rx.Len() {
 		val := rx.Index(i).Interface()
-		fmt.Printf("LIST: %v", val)
-		parse(val, targetInnerType)
+		Lval := parse(val, targetInnerType)
+		resultList = append(resultList, Lval)
 	}
+	return resultList
 }
 
-func parseNormal(source any, targetType reflect.Type) {
+func parseNormal(source any, targetType reflect.Type) any {
 	sourceType := reflect.TypeOf(source)
 	if !sourceType.ConvertibleTo(targetType) {
 		perr(fmt.Errorf("source: %v target: %v", sourceType, targetType))
 	}
 	fmt.Println("NORMAL: ", source)
+	return source
 }
 
-func parse(source any, targetType reflect.Type) {
+func parse(source any, targetType reflect.Type) any {
 	// sourceType := reflect.TypeOf(source)
 	// sourceKind := sourceType.Kind()
 	targetKind := targetType.Kind()
 	switch targetKind {
 	case reflect.Array, reflect.Slice:
-		parseList(source, targetType.Elem())
+		return parseList(source, targetType)
 	case reflect.Struct:
-		parseStruct(source.(map[string]any), targetType)
+		return parseStruct(source.(map[string]any), targetType)
 	default:
-		parseNormal(source, targetType)
+		return parseNormal(source, targetType)
 	}
 }
 

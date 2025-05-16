@@ -9,50 +9,50 @@ import (
 )
 
 type L3 struct {
-	sub_sub_info int
-	flooat       float64
-	buul         bool
-	listofnums   []int
+	Sub_sub_info int
+	Flooaat      float64
+	Buul         bool
+	Listofnums   []int
 }
 
 type L2 struct {
-	sub_info []L3
+	Sub_info []L3
 }
 
 type L1 struct {
-	name      string
-	info      L2
-	moreinfo  []L2
-	emptyinfo []L2 // Keep this empty
+	Name      string
+	Info      L2
+	Moreinfo  []L2
+	Emptyinfo []L2 // Keep this empty
 }
 
 func TestVerifier(t *testing.T) {
 	body, _ := json.Marshal([]map[string]any{
 		{
-			"name": "name",
-			"info": map[string]any{
-				"sub_info": []map[string]any{
+			"Name": "name",
+			"Info": map[string]any{
+				"Sub_info": []map[string]any{
 					{
-						"sub_sub_info": 1,
-						"flooat":       1.2,
-						"buul":         true,
-						"listofnums":   []int{1, 2, 3},
+						"Sub_sub_info": 1,
+						"Flooaat":      1.2,
+						"Buul":         true,
+						"Listofnums":   []int{1, 2, 3},
 					},
 				},
 			},
-			"moreinfo": []map[string]any{
+			"Moreinfo": []map[string]any{
 				{
-					"sub_info": []map[string]any{
+					"Sub_info": []map[string]any{
 						{
-							"sub_sub_info": 1,
-							"flooat":       1.2,
-							"buul":         true,
-							"listofnums":   []int{1, 2, 3},
+							"Sub_sub_info": 1,
+							"Flooaat":      1.2,
+							"Buul":         true,
+							"Listofnums":   []int{1, 2, 3},
 						},
 					},
 				},
 			},
-			"emptyinfo": []map[string]any{},
+			"Emptyinfo": []map[string]any{},
 		},
 	})
 	basic_api.VerifyBytes(body, reflect.TypeFor[[]L1]())
