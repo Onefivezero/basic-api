@@ -9,7 +9,7 @@ import (
 	"reflect"
 )
 
-func fillStruct(donor map[string][]string, receiver any) error {
+func fillQueryParams(donor map[string][]string, receiver any) error {
 	receiverVal := reflect.ValueOf(receiver).Elem()
 	if receiverVal.Kind() != reflect.Struct {
 		return fmt.Errorf("RECEIVER IS NOT A STRUCT: %v", receiverVal)
@@ -44,9 +44,9 @@ func panicErr(w http.ResponseWriter, err error) {
 }
 
 func CustomHandler[
-	QueryModelType interface{},
-	RequestModelType interface{},
-	ResponseModelType interface{},
+	QueryModelType any,
+	RequestModelType any,
+	ResponseModelType any,
 ](
 	url string,
 	method Method,
@@ -63,17 +63,15 @@ func CustomHandler[
 		var queryData *QueryModelType = reflect.New(queryType).Interface().(*QueryModelType)
 
 		// fill query parameters
-		err := fillStruct(rawRequest.URL.Query(), queryData)
+		err := fillQueryParams(rawRequest.URL.Query(), queryData)
 		if err != nil {
 			panicErr(w, err)
 			return
 		}
-		// fill request data
-		err = json.NewDecoder(rawRequest.Body).Decode(requestData)
-		if err != nil {
-			panicErr(w, err)
-			return
-		}
+
+		// fill body
+		// fillBody(*rawRequest, requestData)
+
 		// run code and return response
 		response, http_error := inFunc(queryData, requestData)
 

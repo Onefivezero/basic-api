@@ -123,7 +123,45 @@ func TestBadRequest(t *testing.T) {
 
 	expectedErrorBody := basic_api.ErrorResponse{
 		StatusCode: 400,
-		ErrorMessage: map[string]interface{}{
+		ErrorMessage: map[string]any{
+			"Error": "json: cannot unmarshal string into Go struct field StudentInfo.age of type int",
+		},
+	}
+	if !reflect.DeepEqual(expectedErrorBody, body) {
+		t.Fatal("expected not equal to body")
+	}
+}
+
+func TestBadRequestList(t *testing.T) {
+	mux := http.NewServeMux()
+	basic_api.CustomHandler("/combine", "POST", CombineStudentInfo, mux)
+
+	server := httptest.NewServer(mux)
+	defer server.Close()
+
+	studentInfo := map[string]any{
+		"Name":        "Name",
+		"Age":         "Adult",
+		"Score":       "Enough",
+		"LetterScore": 1,
+		"Passed":      "maybe",
+	}
+	studentInfoJson, err := json.Marshal([]map[string]any{studentInfo, studentInfo, studentInfo})
+	FailTestIfErrorNotNil(t, err)
+
+	res, err := http.Post(server.URL+"/combine?id=studentid", "application/json", bytes.NewBuffer(studentInfoJson))
+	FailTestIfErrorNotNil(t, err)
+
+	bodyByte, err := io.ReadAll(res.Body)
+	FailTestIfErrorNotNil(t, err)
+
+	var body basic_api.ErrorResponse = basic_api.ErrorResponse{}
+	err = json.Unmarshal(bodyByte, &body)
+	FailTestIfErrorNotNil(t, err)
+
+	expectedErrorBody := basic_api.ErrorResponse{
+		StatusCode: 400,
+		ErrorMessage: map[string]any{
 			"Error": "json: cannot unmarshal string into Go struct field StudentInfo.age of type int",
 		},
 	}
