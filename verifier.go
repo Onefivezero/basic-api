@@ -5,29 +5,15 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
-	"slices"
 )
 
-func ParseNormal(val any, type_ reflect.Type) any {
-	for reflect.TypeOf(val).Name() == "Value" {
-		val = val.(reflect.Value).Interface()
-	}
-	kind := type_.Kind()
-	if slices.Contains(intKinds, kind) {
-		val = reflect.ValueOf(val).Convert(type_).Int()
-	} else if slices.Contains(uintKinds, kind) {
-		val = reflect.ValueOf(val).Convert(type_).Uint()
-	} else if slices.Contains(floatKinds, kind) {
-		val = reflect.ValueOf(val).Convert(type_).Float()
-	}
-	return val
+func ParseNormal(val reflect.Value, type_ reflect.Type) reflect.Value {
+	returnVal := val.Convert(type_)
+	return returnVal
 }
 
-func ParseStruct(val any, type_ reflect.Type) any {
-	for reflect.TypeOf(val).Name() == "Value" {
-		val = val.(reflect.Value).Interface()
-	}
-	dataMap := val.(map[string]any)
+func ParseStruct(val reflect.Value, type_ reflect.Type) reflect.Value {
+	var dataMap map[string]any = val.Interface().(map[string]any)
 	fields := reflect.VisibleFields(type_)
 	result := reflect.New(type_).Elem()
 	for _, fieldInfo := range fields {
@@ -36,44 +22,37 @@ func ParseStruct(val any, type_ reflect.Type) any {
 		if !exists { // do something?
 			continue
 		}
-		parsedVal := Parse(dataVal, fieldInfo.Type)
-		result.FieldByName(fieldName).Set(reflect.ValueOf(parsedVal))
-	}
-	return result.Interface()
-}
-
-func ParseList(val any, type_ reflect.Type) any {
-	reflectVal := reflect.ValueOf(val)
-	resList := reflect.MakeSlice(type_, reflectVal.Len(), reflectVal.Len())
-	for i := range reflectVal.Len() {
-		elem := reflectVal.Index(i)
-		parsedVal := Parse(elem, type_.Elem())
-		resList.Index(i).Set(reflect.ValueOf(parsedVal))
-	}
-	return resList
-}
-
-func Parse(val any, type_ reflect.Type) any {
-	var result any
-
-	switch type_.Kind() {
-	case reflect.Array, reflect.Slice:
-		result = ParseList(val, type_)
-	case reflect.Struct:
-		result = ParseStruct(val, type_)
-	default:
-		result = ParseNormal(val, type_)
-	}
-	fmt.Println("PARSED_RESULT: ", result)
-	for reflect.TypeOf(result).Name() == "Value" {
-		result = result.(reflect.Value).Interface()
+		parsedVal := Parse(reflect.ValueOf(dataVal), fieldInfo.Type)
+		result.FieldByName(fieldName).Set(parsedVal)
 	}
 	return result
 }
 
+func ParseList(val reflect.Value, type_ reflect.Type) reflect.Value {
+	resList := reflect.MakeSlice(type_, val.Len(), val.Len())
+	for i := range val.Len() {
+		elem := val.Index(i)
+		parsedVal := Parse(elem.Elem(), type_.Elem())
+		resList.Index(i).Set(parsedVal)
+	}
+	return resList
+}
+
+func Parse(val reflect.Value, type_ reflect.Type) reflect.Value {
+	switch type_.Kind() {
+	case reflect.Array, reflect.Slice:
+		val = ParseList(val, type_)
+	case reflect.Struct:
+		val = ParseStruct(val, type_)
+	default:
+		val = ParseNormal(val, type_)
+	}
+	return val
+}
+
 func Verify[T any](mapData map[string]any) T {
-	res := Parse(mapData, reflect.TypeFor[T]())
-	return res.(T)
+	res := Parse(reflect.ValueOf(mapData), reflect.TypeFor[T]())
+	return res.Interface().(T)
 }
 
 func VerifyList[T any](mapData []map[string]any) []T {
