@@ -2,17 +2,17 @@ package basic_api_test
 
 import (
 	"encoding/json"
-	"reflect"
+	"fmt"
 	"testing"
 
 	basic_api "github.com/onefivezero/basic-api"
 )
 
 type L3 struct {
-	Sub_sub_info int
+	Sub_sub_info int64
 	Flooaat      float64
 	Buul         bool
-	Listofnums   []int
+	Listofnums   []int64
 }
 
 type L2 struct {
@@ -55,5 +55,10 @@ func TestVerifier(t *testing.T) {
 			"Emptyinfo": []map[string]any{},
 		},
 	})
-	basic_api.VerifyBytes(body, reflect.TypeFor[[]L1]())
+	result := basic_api.VerifyBytes[L1](&body)
+	b, err := json.MarshalIndent(result, "", "  ")
+	if err != nil {
+		panic("ASDASDASD")
+	}
+	fmt.Println(string(b))
 }

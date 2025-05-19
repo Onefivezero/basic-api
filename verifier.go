@@ -5,92 +5,104 @@ import (
 	"encoding/json"
 	"fmt"
 	"reflect"
+	"slices"
 )
 
-func perr(err error) {
-	fmt.Println(err)
-	panic("ENDED")
+func ParseNormal(val any, type_ reflect.Type) any {
+	for reflect.TypeOf(val).Name() == "Value" {
+		val = val.(reflect.Value).Interface()
+	}
+	kind := type_.Kind()
+	if slices.Contains(intKinds, kind) {
+		val = reflect.ValueOf(val).Convert(type_).Int()
+	} else if slices.Contains(uintKinds, kind) {
+		val = reflect.ValueOf(val).Convert(type_).Uint()
+	} else if slices.Contains(floatKinds, kind) {
+		val = reflect.ValueOf(val).Convert(type_).Float()
+	}
+	return val
 }
 
-func parseStruct(source map[string]any, targetType reflect.Type) any {
-	finalVal := reflect.New(targetType)
-	for _, fieldInfo := range reflect.VisibleFields(targetType) {
+func ParseStruct(val any, type_ reflect.Type) any {
+	for reflect.TypeOf(val).Name() == "Value" {
+		val = val.(reflect.Value).Interface()
+	}
+	dataMap := val.(map[string]any)
+	fields := reflect.VisibleFields(type_)
+	result := reflect.New(type_).Elem()
+	for _, fieldInfo := range fields {
 		fieldName := fieldInfo.Name
-		val, exists := source[fieldName]
-		fmt.Printf("STRUCT: field: %v, val: %v, exists: %v\n", fieldName, val, exists)
-		if exists {
-			parsedVal := parse(val, fieldInfo.Type)
-			fmt.Printf("1: %v", reflect.ValueOf(finalVal).FieldByName(fieldName))
-			fmt.Printf("2: %v", reflect.ValueOf(finalVal).FieldByName(fieldName))
-			fmt.Printf("3: %v", fieldName)
-			reflect.ValueOf(finalVal).FieldByName(fieldName).Set(reflect.ValueOf(parsedVal))
+		dataVal, exists := dataMap[fieldName]
+		if !exists { // do something?
+			continue
 		}
+		parsedVal := Parse(dataVal, fieldInfo.Type)
+		result.FieldByName(fieldName).Set(reflect.ValueOf(parsedVal))
 	}
-	return finalVal
+	return result.Interface()
 }
 
-func parseList(source any, targetType reflect.Type) []any {
-	targetInnerType := targetType.Elem()
-	rx := reflect.ValueOf(source)
-	var resultList []any = make([]any, 0)
-	for i := range rx.Len() {
-		val := rx.Index(i).Interface()
-		Lval := parse(val, targetInnerType)
-		resultList = append(resultList, Lval)
+func ParseList(val any, type_ reflect.Type) any {
+	reflectVal := reflect.ValueOf(val)
+	resList := reflect.MakeSlice(type_, reflectVal.Len(), reflectVal.Len())
+	for i := range reflectVal.Len() {
+		elem := reflectVal.Index(i)
+		parsedVal := Parse(elem, type_.Elem())
+		resList.Index(i).Set(reflect.ValueOf(parsedVal))
 	}
-	return resultList
+	return resList
 }
 
-func parseNormal(source any, targetType reflect.Type) any {
-	sourceType := reflect.TypeOf(source)
-	if !sourceType.ConvertibleTo(targetType) {
-		perr(fmt.Errorf("source: %v target: %v", sourceType, targetType))
-	}
-	fmt.Println("NORMAL: ", source)
-	return source
-}
+func Parse(val any, type_ reflect.Type) any {
+	var result any
 
-func parse(source any, targetType reflect.Type) any {
-	// sourceType := reflect.TypeOf(source)
-	// sourceKind := sourceType.Kind()
-	targetKind := targetType.Kind()
-	switch targetKind {
+	switch type_.Kind() {
 	case reflect.Array, reflect.Slice:
-		return parseList(source, targetType)
+		result = ParseList(val, type_)
 	case reflect.Struct:
-		return parseStruct(source.(map[string]any), targetType)
+		result = ParseStruct(val, type_)
 	default:
-		return parseNormal(source, targetType)
+		result = ParseNormal(val, type_)
 	}
+	fmt.Println("PARSED_RESULT: ", result)
+	for reflect.TypeOf(result).Name() == "Value" {
+		result = result.(reflect.Value).Interface()
+	}
+	return result
 }
 
-func Verify(source any, targetType reflect.Type) {
-	parse(source, targetType)
+func Verify[T any](mapData map[string]any) T {
+	res := Parse(mapData, reflect.TypeFor[T]())
+	return res.(T)
 }
 
-func VerifyBytes(source []byte, targetType reflect.Type) {
-	decoder := json.NewDecoder(bytes.NewReader(source))
-
-	switch source[0] {
-	case '[':
-		listVal := make([]map[string]any, 0)
-		err := decoder.Decode(&listVal)
-		if err != nil {
-			fmt.Println("LISTVAL NOT VALID")
-			return
-		}
-		Verify(listVal, targetType)
-	case '{':
-		mapVal := make(map[string]any)
-		err := decoder.Decode(&mapVal)
-		if err != nil {
-			fmt.Println("MAPVAL NOT VALID")
-			fmt.Println(err)
-			return
-		}
-		Verify(mapVal, targetType)
-	default:
-		fmt.Printf("Not valid: %c", source[0])
-		return
+func VerifyList[T any](mapData []map[string]any) []T {
+	result := make([]T, 0)
+	for _, i := range mapData {
+		result = append(result, Verify[T](i))
 	}
+	return result
+}
+
+func VerifyBytes[T any](dataref *[]byte) any {
+	data := *dataref
+	var result any
+	decoder := json.NewDecoder(bytes.NewReader(data))
+
+	if data[0] == '[' {
+		jsonArr := []map[string]any{}
+		err := decoder.Decode(&jsonArr)
+		if err != nil {
+			fmt.Printf("ERRROR PARSING: %v\n", err)
+		}
+		result = VerifyList[T](jsonArr)
+	} else if data[0] == '{' {
+		jsonData := map[string]any{}
+		err := decoder.Decode(&jsonData)
+		if err != nil {
+			fmt.Printf("ERRROR PARSING: %v\n", err)
+		}
+		result = Verify[T](jsonData)
+	}
+	return result.([]T)
 }
