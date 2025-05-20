@@ -95,6 +95,32 @@ func TestVerifierInvalid(t *testing.T) {
 			},
 			"Emptyinfo": []map[string]any{},
 		},
+		{
+			"Name": "name",
+			"Info": map[string]any{
+				"Sub_info": []map[string]any{
+					{
+						"Sub_sub_info": 1,
+						"Flooaat":      1.2,
+						"Buul":         true,
+						"Listofnums":   []int{1, 2, 3},
+					},
+				},
+			},
+			"Moreinfo": []map[string]any{
+				{
+					"Sub_info": []map[string]any{
+						{
+							"Sub_sub_info": 1,
+							"Flooaat":      1.2,
+							"Buul":         false,
+							"Listofnums":   []any{1, 2, 3},
+						},
+					},
+				},
+			},
+			"Emptyinfo": []int{1, 2, 3, 4, 5},
+		},
 	}
 	result, err := basic_api.VerifyList[L1](mapData)
 	fmt.Println(err)

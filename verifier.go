@@ -70,7 +70,9 @@ func (p *parser) ParseList(val reflect.Value, type_ reflect.Type, path *[]string
 		elem := val.Index(i)
 		path_i := append(*path, fmt.Sprintf("[%d]", i))
 		parsedVal := p.Parse(elem, type_.Elem(), &path_i)
-		resList.Index(i).Set(parsedVal)
+		if parsedVal.IsValid() {
+			resList.Index(i).Set(parsedVal)
+		}
 	}
 	return resList
 }
