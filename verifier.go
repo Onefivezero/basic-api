@@ -55,7 +55,9 @@ func (p *parser) ParseStruct(val reflect.Value, type_ reflect.Type, path *[]stri
 		}
 		path_f := append(*path, fieldName)
 		parsedVal := p.Parse(reflect.ValueOf(dataVal), fieldInfo.Type, &path_f)
-		result.FieldByName(fieldName).Set(parsedVal)
+		if parsedVal.IsValid() {
+			result.FieldByName(fieldName).Set(parsedVal)
+		}
 	}
 	return result
 }

@@ -107,15 +107,13 @@ func TestVerifierInvalid(t *testing.T) {
 					},
 				},
 			},
-			"Moreinfo": []map[string]any{
-				{
-					"Sub_info": []map[string]any{
-						{
-							"Sub_sub_info": 1,
-							"Flooaat":      1.2,
-							"Buul":         false,
-							"Listofnums":   []any{1, 2, 3},
-						},
+			"Moreinfo": map[string]any{
+				"Sub_info": []map[string]any{
+					{
+						"Sub_sub_info": 1,
+						"Flooaat":      1.2,
+						"Buul":         false,
+						"Listofnums":   []any{1, 2, 3},
 					},
 				},
 			},
