@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"testing"
 
-	basic_api "github.com/onefivezero/basic-api"
+	"github.com/onefivezero/basic-api/parser"
 )
 
 type L3 struct {
@@ -55,7 +55,7 @@ func TestVerifier(t *testing.T) {
 			"Emptyinfo": []map[string]any{},
 		},
 	})
-	result, errs := basic_api.VerifyBytes[L1](&body)
+	result, errs := parser.VerifyBytes[L1](&body)
 	if len(errs) != 0 {
 		fmt.Println(errs)
 		t.FailNow()
@@ -120,7 +120,7 @@ func TestVerifierInvalid(t *testing.T) {
 			"Emptyinfo": []int{1, 2, 3, 4, 5},
 		},
 	}
-	result, err := basic_api.ParseList[L1](mapData)
+	result, err := parser.ParseList[L1](mapData)
 	fmt.Println(err)
 	fmt.Println(result)
 }

@@ -1,4 +1,4 @@
-package basic_api
+package parser
 
 import (
 	"reflect"
