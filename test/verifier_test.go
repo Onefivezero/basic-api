@@ -120,7 +120,7 @@ func TestVerifierInvalid(t *testing.T) {
 			"Emptyinfo": []int{1, 2, 3, 4, 5},
 		},
 	}
-	result, err := basic_api.VerifyList[L1](mapData)
+	result, err := basic_api.ParseList[L1](mapData)
 	fmt.Println(err)
 	fmt.Println(result)
 }

@@ -26,7 +26,7 @@ func (p *parser) AddError(path []string, reason string) {
 	p.Errors = append(p.Errors, err)
 }
 
-func (p *parser) ParseNormal(val reflect.Value, type_ reflect.Type, path *[]string) reflect.Value {
+func (p *parser) parseNormal(val reflect.Value, type_ reflect.Type, path *[]string) reflect.Value {
 	for !val.CanConvert(type_) && (val.Kind() == reflect.Pointer || val.Kind() == reflect.Interface) {
 		val = val.Elem()
 	}
@@ -37,7 +37,7 @@ func (p *parser) ParseNormal(val reflect.Value, type_ reflect.Type, path *[]stri
 	return val.Convert(type_)
 }
 
-func (p *parser) ParseStruct(val reflect.Value, type_ reflect.Type, path *[]string) reflect.Value {
+func (p *parser) parseStruct(val reflect.Value, type_ reflect.Type, path *[]string) reflect.Value {
 	dataMap, ok := val.Interface().(map[string]any)
 	if !ok {
 		p.AddError(*path, fmt.Sprintf("Value: %v %v can not be converted to Type: %v", val.Type(), val, type_))
@@ -62,7 +62,7 @@ func (p *parser) ParseStruct(val reflect.Value, type_ reflect.Type, path *[]stri
 	return result
 }
 
-func (p *parser) ParseList(val reflect.Value, type_ reflect.Type, path *[]string) reflect.Value {
+func (p *parser) parseList(val reflect.Value, type_ reflect.Type, path *[]string) reflect.Value {
 	if !isSlice(val.Type()) {
 		p.AddError(*path, fmt.Sprintf("Value: %v %v can not be converted to Type: %v", val.Type(), val, type_))
 		return reflect.ValueOf(nil)
@@ -82,16 +82,16 @@ func (p *parser) ParseList(val reflect.Value, type_ reflect.Type, path *[]string
 func (p *parser) Parse(val reflect.Value, type_ reflect.Type, path *[]string) reflect.Value {
 	switch type_.Kind() {
 	case reflect.Array, reflect.Slice:
-		val = p.ParseList(val, type_, path)
+		val = p.parseList(val, type_, path)
 	case reflect.Struct:
-		val = p.ParseStruct(val, type_, path)
+		val = p.parseStruct(val, type_, path)
 	default:
-		val = p.ParseNormal(val, type_, path)
+		val = p.parseNormal(val, type_, path)
 	}
 	return val
 }
 
-func Verify[T any](mapData map[string]any) (T, []parseError) {
+func Parse[T any](mapData map[string]any) (T, []parseError) {
 	p := parser{Errors: []parseError{}}
 	e := make([]string, 0)
 	res := p.Parse(reflect.ValueOf(mapData), reflect.TypeFor[T](), &e)
@@ -102,11 +102,11 @@ func Verify[T any](mapData map[string]any) (T, []parseError) {
 	return res.Interface().(T), p.Errors
 }
 
-func VerifyList[T any](mapData []map[string]any) ([]T, []parseError) {
+func ParseList[T any](mapData []map[string]any) ([]T, []parseError) {
 	result := make([]T, 0)
 	errList := make([]parseError, 0)
 	for _, i := range mapData {
-		parsedObj, errs := Verify[T](i)
+		parsedObj, errs := Parse[T](i)
 		result = append(result, parsedObj)
 		errList = append(errList, errs...)
 	}
@@ -126,14 +126,14 @@ func VerifyBytes[T any](dataref *[]byte) (any, []parseError) {
 		if err != nil {
 			fmt.Printf("ERRROR PARSING: %v\n", err)
 		}
-		result, errs = VerifyList[T](jsonArr)
+		result, errs = ParseList[T](jsonArr)
 	} else if data[0] == '{' {
 		jsonData := map[string]any{}
 		err := decoder.Decode(&jsonData)
 		if err != nil {
 			fmt.Printf("ERRROR PARSING: %v\n", err)
 		}
-		result, errs = Verify[T](jsonData)
+		result, errs = Parse[T](jsonData)
 	}
 	return result.([]T), errs
 }
