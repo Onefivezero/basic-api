@@ -7,10 +7,10 @@ import (
 	"io"
 	"net/http"
 	"net/http/httptest"
-	"reflect"
 	"testing"
 
 	basic_api "github.com/onefivezero/basic-api"
+	"github.com/stretchr/testify/assert"
 )
 
 func FailTestIfErrorNotNil(t *testing.T, err error) {
@@ -20,24 +20,24 @@ func FailTestIfErrorNotNil(t *testing.T, err error) {
 }
 
 type StudentInfo struct {
-	Name        string  `json:"name"`
-	Age         int     `json:"age"`
-	Score       float32 `json:"score"`
-	LetterScore rune    `json:"letterScore"`
-	Passed      bool    `json:"passed"`
+	Name        string
+	Age         int64
+	Score       float64
+	LetterScore rune
+	Passed      bool
 }
 
 type StudentIdentifierInfo struct {
-	Id string `json:"id"`
+	Id string
 }
 
 type StudentCompleteInfo struct {
-	Id          string  `json:"id"`
-	Name        string  `json:"name"`
-	Age         int     `json:"age"`
-	Score       float32 `json:"score"`
-	LetterScore rune    `json:"letterScore"`
-	Passed      bool    `json:"passed"`
+	Id          string
+	Name        string
+	Age         int64
+	Score       float64
+	LetterScore rune
+	Passed      bool
 }
 
 func CombineStudentInfo(
@@ -51,6 +51,21 @@ func CombineStudentInfo(
 		Score:       requestData.Score,
 		LetterScore: requestData.LetterScore,
 		Passed:      requestData.Passed,
+	}, nil
+}
+
+func CombineStudentInfoMult(
+	queryParameters *StudentIdentifierInfo,
+	requestData *[]StudentInfo,
+) (*StudentCompleteInfo, *basic_api.ErrorResponse) {
+	studentInfo := (*requestData)[0]
+	return &StudentCompleteInfo{
+		Id:          queryParameters.Id,
+		Name:        studentInfo.Name,
+		Age:         studentInfo.Age,
+		Score:       studentInfo.Score,
+		LetterScore: studentInfo.LetterScore,
+		Passed:      studentInfo.Passed,
 	}, nil
 }
 
@@ -89,9 +104,7 @@ func TestBasicUsage(t *testing.T) {
 		LetterScore: 'A',
 		Passed:      true,
 	}
-	if body != expectedBody {
-		t.Fatal("expected body not found.")
-	}
+	assert.Equal(t, expectedBody, body, string(bodyByte))
 }
 
 func TestBadRequest(t *testing.T) {
@@ -123,18 +136,28 @@ func TestBadRequest(t *testing.T) {
 
 	expectedErrorBody := basic_api.ErrorResponse{
 		StatusCode: 400,
-		ErrorMessage: map[string]any{
-			"Error": "json: cannot unmarshal string into Go struct field StudentInfo.age of type int",
+		ErrorMessage: []any{
+			map[string]any{
+				"Path":   "Age",
+				"Reason": "Value: string Adult can not be converted to Type: int64",
+			},
+			map[string]any{
+				"Path":   "Score",
+				"Reason": "Value: string Enough can not be converted to Type: float64",
+			},
+			map[string]any{
+				"Path":   "Passed",
+				"Reason": "Value: string maybe can not be converted to Type: bool",
+			},
 		},
 	}
-	if !reflect.DeepEqual(expectedErrorBody, body) {
-		t.Fatal("expected not equal to body")
-	}
+
+	assert.Equal(t, expectedErrorBody, body)
 }
 
 func TestBadRequestList(t *testing.T) {
 	mux := http.NewServeMux()
-	basic_api.CustomHandler("/combine", "POST", CombineStudentInfo, mux)
+	basic_api.CustomHandler("/combine", "POST", CombineStudentInfoMult, mux)
 
 	server := httptest.NewServer(mux)
 	defer server.Close()
@@ -146,7 +169,7 @@ func TestBadRequestList(t *testing.T) {
 		"LetterScore": 1,
 		"Passed":      "maybe",
 	}
-	studentInfoJson, err := json.Marshal([]map[string]any{studentInfo, studentInfo, studentInfo})
+	studentInfoJson, err := json.Marshal([]map[string]any{studentInfo})
 	FailTestIfErrorNotNil(t, err)
 
 	res, err := http.Post(server.URL+"/combine?id=studentid", "application/json", bytes.NewBuffer(studentInfoJson))
@@ -161,11 +184,21 @@ func TestBadRequestList(t *testing.T) {
 
 	expectedErrorBody := basic_api.ErrorResponse{
 		StatusCode: 400,
-		ErrorMessage: map[string]any{
-			"Error": "json: cannot unmarshal string into Go struct field StudentInfo.age of type int",
+		ErrorMessage: []any{
+			map[string]any{
+				"Path":   "[0].Age",
+				"Reason": "Value: string Adult can not be converted to Type: int64",
+			},
+			map[string]any{
+				"Path":   "[0].Score",
+				"Reason": "Value: string Enough can not be converted to Type: float64",
+			},
+			map[string]any{
+				"Path":   "[0].Passed",
+				"Reason": "Value: string maybe can not be converted to Type: bool",
+			},
 		},
 	}
-	if !reflect.DeepEqual(expectedErrorBody, body) {
-		t.Fatal("expected not equal to body")
-	}
+
+	assert.Equal(t, expectedErrorBody, body)
 }

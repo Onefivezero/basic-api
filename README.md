@@ -1,6 +1,6 @@
 # Basic API
 
-A Golang REST framework made to simplify writing endpoints.
+A Golang REST framework made to simplify writing REST APIs.
 
 ## Basic Example
 
@@ -9,24 +9,24 @@ A Golang REST framework made to simplify writing endpoints.
 
 // Define request data and query parameter models.
 type StudentInfo struct {
-	Name        string  `json:"name"`
-	Age         int     `json:"age"`
-	Score       float32 `json:"score"`
-	LetterScore rune    `json:"letterScore"`
-	Passed      bool    `json:"passed"`
+	Name        string
+	Age         int64
+	Score       float64
+	LetterScore rune
+	Passed      bool
 }
 
 type StudentIdentifierInfo struct {
-	Id string `json:"id"`
+	Id string
 }
 
 type StudentCompleteInfo struct {
-	Id          string  `json:"id"`
-	Name        string  `json:"name"`
-	Age         int     `json:"age"`
-	Score       float32 `json:"score"`
-	LetterScore rune    `json:"letterScore"`
-	Passed      bool    `json:"passed"`
+	Id          string
+	Name        string
+	Age         int64
+	Score       float64
+	LetterScore rune
+	Passed      bool
 }
 
 // Define an endpoint function.
