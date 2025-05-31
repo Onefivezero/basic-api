@@ -2,5 +2,5 @@ package basic_api
 
 type ErrorResponse struct {
 	StatusCode   int
-	ErrorMessage any
+	ErrorMessage interface{}
 }

@@ -1,24 +1,22 @@
 package parser
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"reflect"
 	"strings"
 )
 
-type parseError struct {
+type ParseError struct {
 	Path   string
 	Reason string
 }
 
 type parser struct {
-	Errors []parseError
+	Errors []ParseError
 }
 
 func (p *parser) AddError(path []string, reason string) {
-	err := parseError{
+	err := ParseError{
 		Path:   strings.Join(path, "."),
 		Reason: reason,
 	}
@@ -63,7 +61,7 @@ func (p *parser) parseStruct(val reflect.Value, type_ reflect.Type, path *[]stri
 }
 
 func (p *parser) parseList(val reflect.Value, type_ reflect.Type, path *[]string) reflect.Value {
-	if !isSlice(val.Type()) {
+	if !IsSlice(val.Type()) {
 		p.AddError(*path, fmt.Sprintf("Value: %v %v can not be converted to Type: %v", val.Type(), val, type_))
 		return reflect.ValueOf(nil)
 	}
@@ -91,49 +89,12 @@ func (p *parser) Parse(val reflect.Value, type_ reflect.Type, path *[]string) re
 	return val
 }
 
-func Parse[T any](mapData map[string]any) (T, []parseError) {
-	p := parser{Errors: []parseError{}}
+func Parse(data any, type_ reflect.Type) (any, []ParseError) {
+	p := parser{Errors: []ParseError{}}
 	e := make([]string, 0)
-	res := p.Parse(reflect.ValueOf(mapData), reflect.TypeFor[T](), &e)
-
-	if len(p.Errors) > 0 {
-		return *new(T), p.Errors
+	res := p.Parse(reflect.ValueOf(data), type_, &e)
+	if p.Errors == nil || len(p.Errors) > 0 {
+		return reflect.Zero(type_), p.Errors
 	}
-	return res.Interface().(T), p.Errors
-}
-
-func ParseList[T any](mapData []map[string]any) ([]T, []parseError) {
-	result := make([]T, 0)
-	errList := make([]parseError, 0)
-	for _, i := range mapData {
-		parsedObj, errs := Parse[T](i)
-		result = append(result, parsedObj)
-		errList = append(errList, errs...)
-	}
-	// TODO: Fix parseError paths. They should start with [0] instead of nothing.
-	return result, errList
-}
-
-func VerifyBytes[T any](dataref *[]byte) (any, []parseError) {
-	data := *dataref
-	var result any
-	var errs []parseError
-	decoder := json.NewDecoder(bytes.NewReader(data))
-
-	if data[0] == '[' {
-		jsonArr := []map[string]any{}
-		err := decoder.Decode(&jsonArr)
-		if err != nil {
-			fmt.Printf("ERRROR PARSING: %v\n", err)
-		}
-		result, errs = ParseList[T](jsonArr)
-	} else if data[0] == '{' {
-		jsonData := map[string]any{}
-		err := decoder.Decode(&jsonData)
-		if err != nil {
-			fmt.Printf("ERRROR PARSING: %v\n", err)
-		}
-		result, errs = Parse[T](jsonData)
-	}
-	return result.([]T), errs
+	return res.Interface(), p.Errors
 }

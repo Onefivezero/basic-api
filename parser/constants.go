@@ -29,10 +29,10 @@ var structKinds = []reflect.Kind{reflect.Struct}
 
 var sliceKinds = []reflect.Kind{reflect.Slice, reflect.Array}
 
-func isStruct(type_ reflect.Type) bool {
+func IsStruct(type_ reflect.Type) bool {
 	return slices.Contains(structKinds, type_.Kind())
 }
 
-func isSlice(type_ reflect.Type) bool {
+func IsSlice(type_ reflect.Type) bool {
 	return slices.Contains(sliceKinds, type_.Kind())
 }
