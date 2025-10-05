@@ -41,7 +41,7 @@ func CombineStudentInfo(
 		Score:       requestData.Score,
 		LetterScore: requestData.LetterScore,
 		Passed:      requestData.Passed,
-	}
+	}, nil
 }
 
 
